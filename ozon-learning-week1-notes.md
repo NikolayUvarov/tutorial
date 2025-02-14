@@ -1,3 +1,99 @@
+# net/http в разрезе RoundTripper
+
+На примерах.
+    package main
+    
+    import (
+    	"fmt"
+    	"net/http"
+    	"time"
+    )
+    
+    // Логирующий транспорт с измерением времени ответа
+    type LoggingTransport struct {
+    	Transport http.RoundTripper // Вложенный транспорт
+    }
+    
+    func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+    	start := time.Now()
+    	resp, err := t.Transport.RoundTrip(req) // Выполняем запрос
+    	duration := time.Since(start)
+    
+    	if err != nil {
+    		fmt.Printf("Request: %s %s | Error: %v | Duration: %v\n", req.Method, req.URL, err, duration)
+    		return nil, err
+    	}
+    
+    	fmt.Printf("Request: %s %s | Duration: %v | Status: %d\n", req.Method, req.URL, duration, resp.StatusCode)
+    	return resp, err
+    }
+    
+    // Транспорт, добавляющий заголовки
+    type HeaderTransport struct {
+    	Transport http.RoundTripper
+    }
+    
+    func (t *HeaderTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+    	start := time.Now()
+    	req.Header.Set("X-Custom-Header", "MyValue") // Добавляем заголовок
+    	resp, err := t.Transport.RoundTrip(req)      // Выполняем запрос
+    	duration := time.Since(start)
+    
+    	if err != nil {
+    		fmt.Printf("Request with header: %s %s | Error: %v | Duration: %v\n", req.Method, req.URL, err, duration)
+    		return nil, err
+    	}
+    
+    	fmt.Printf("Request with header: %s %s | Duration: %v | Status: %d\n", req.Method, req.URL, duration, resp.StatusCode)
+    	return resp, err
+    }
+    
+    // Фейковый транспорт для тестов
+    type FakeTransport struct{}
+    
+    func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+    	start := time.Now()
+    	time.Sleep(50 * time.Millisecond) // Симулируем задержку ответа
+    	duration := time.Since(start)
+    
+    	fmt.Printf("Fake request: %s %s | Duration: %v | Status: %d\n", req.Method, req.URL, duration, http.StatusOK)
+    
+    	return &http.Response{
+    		StatusCode: http.StatusOK,
+    		Body:       http.NoBody, // Пустое тело
+    	}, nil
+    }
+    
+    func main() {
+    	// HTTP-клиент с логгированием
+    	client := &http.Client{
+    		Transport: &LoggingTransport{Transport: http.DefaultTransport}, // Подменяем транспорт
+    	}
+    	_, _ = client.Get("https://example.com")
+    
+    	// HTTP-клиент с кастомным заголовком
+    	clientWithHeader := &http.Client{
+    		Transport: &HeaderTransport{Transport: http.DefaultTransport},
+    	}
+    	_, _ = clientWithHeader.Get("https://example.com")
+    
+    	// Ненастоящий (моковый, тестовый, фейковый) HTTP-клиент для тестов
+    	clientFake := &http.Client{Transport: &FakeTransport{}}
+    	_, _ = clientFake.Get("https://example.com")
+    }
+
+
+# errors
+
+errors.Is – проверяет, является ли ошибка целевой
+errors.As – извлекает ошибку по типу
+
+errors.Is(err, target)	Проверяет, эквивалентна ли ошибка target, даже если она обёрнута.
+errors.As(err, &target)	Проверяет, является ли ошибка err нужным типом (по type assertion).
+
+errors.Join(err1, err2) объединит ошибки вместе (цепочки ошибок), например от разных горутин
+
+
 # interace
 Есть функция (все функции) у объекта, описанная в интерфейсе - он реализует интерфейс. Описание не требуется.
 
