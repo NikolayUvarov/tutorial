@@ -1,4 +1,5 @@
-#map
+# map
+
 from go 1.24 используются swissmaps
 map[int64]struct{} requires 16 bytes per slot #71368
 
