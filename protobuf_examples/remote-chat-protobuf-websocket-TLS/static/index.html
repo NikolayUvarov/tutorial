@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WSS Protobuf Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #messages { width: 60%; margin: auto; height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+        input, button { padding: 10px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>WSS + Protobuf Chat</h2>
+    <div id="messages"></div>
+
+    <input type="text" id="messageInput" placeholder="Type a message..." />
+    <button onclick="sendMessage()">Send</button>
+
+    <!-- Protobuf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/protobufjs/6.11.3/protobuf.min.js"></script>
+
+    <script>
+        let socket = new WebSocket("wss://localhost:8080/ws");  // Secure WebSocket
+
+        protobuf.load("/static/chat.proto").then(root => {
+            const ChatMessage = root.lookupType("chat.ChatMessage");
+
+            function sendMessage() {
+                let input = document.getElementById("messageInput");
+                if (!input.value) return;
+
+                let payload = { username: "Client", text: input.value };
+                let message = ChatMessage.create(payload);
+                let buffer = ChatMessage.encode(message).finish();
+
+                socket.send(buffer);
+                input.value = "";
+            }
+
+            socket.onmessage = function(event) {
+                event.data.arrayBuffer().then(buffer => {
+                    let message = ChatMessage.decode(new Uint8Array(buffer));
+                    displayMessage(message.username, message.text);
+                });
+            };
+
+            socket.onopen = () => displayMessage("System", "Connected via WSS.");
+            socket.onclose = () => displayMessage("System", "Connection closed.");
+            socket.onerror = error => displayMessage("Error", "Connection error!");
+
+            function displayMessage(user, text) {
+                let messages = document.getElementById("messages");
+                let msg = document.createElement("div");
+                msg.textContent = `${user}: ${text}`;
+                messages.appendChild(msg);
+                messages.scrollTop = messages.scrollHeight;
+            }
+
+            window.sendMessage = sendMessage;
+        }).catch(error => console.error("Protobuf load error:", error));
+    </script>
+
+</body>
+</html>

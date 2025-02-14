@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gRPC WebSocket Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #messages { width: 60%; margin: auto; height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+        input, button { padding: 10px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>gRPC WebSocket Chat</h2>
+    <div id="messages"></div>
+
+    <input type="text" id="messageInput" placeholder="Введите сообщение..." />
+    <button onclick="sendMessage()">Отправить</button>
+
+    <!-- Подключаем protobuf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/protobufjs/6.11.3/protobuf.min.js"></script>
+
+    <script>
+        let socket = new WebSocket("ws://localhost:8080/ws"); // Подключение к серверу
+
+	protobuf.load("/static/chat.proto").then(root => {  
+            const MessageRequest = root.lookupType("chat.MessageRequest");
+            const MessageResponse = root.lookupType("chat.MessageResponse");
+
+            function sendMessage() {
+                let input = document.getElementById("messageInput");
+                if (!input.value) return;
+
+                let payload = { username: "Клиент", text: input.value };
+                let message = MessageRequest.create(payload);
+                let buffer = MessageRequest.encode(message).finish();
+
+                socket.send(buffer); // Отправляем бинарные данные
+                input.value = "";
+            }
+
+            socket.onmessage = function(event) {
+                event.data.arrayBuffer().then(buffer => {
+                    let message = MessageResponse.decode(new Uint8Array(buffer));
+                    displayMessage("Сервер", message.status);
+                });
+            };
+
+            socket.onopen = () => displayMessage("Система", "Подключение установлено.");
+            socket.onclose = () => displayMessage("Система", "Соединение закрыто.");
+            socket.onerror = error => displayMessage("Ошибка", "Ошибка соединения!");
+
+            function displayMessage(user, text) {
+                let messages = document.getElementById("messages");
+                let msg = document.createElement("div");
+                msg.textContent = `${user}: ${text}`;
+                messages.appendChild(msg);
+                messages.scrollTop = messages.scrollHeight;
+            }
+
+            window.sendMessage = sendMessage;
+        });
+    </script>
+
+</body>
+</html>
