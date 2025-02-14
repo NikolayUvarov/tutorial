@@ -10,25 +10,25 @@ var x any = 42
 Можно проверить тип:
 var x interface{} = "hello"
 
-// Приведение типа
-str, ok := x.(string)
-if ok {
-    fmt.Println("String:", str)
-}
+    // Приведение типа
+    str, ok := x.(string)
+    if ok {
+        fmt.Println("String:", str)
+    }
 
 # interface & generics
 
-func PrintSlice(slice []interface{}) {
-    for _, v := range slice {
-        fmt.Println(v)
+    func PrintSlice(slice []interface{}) {
+        for _, v := range slice {
+            fmt.Println(v)
+        }
     }
-}
-
-func PrintSlice[T any](slice []T) {
-    for _, v := range slice {
-        fmt.Println(v)
+    
+    func PrintSlice[T any](slice []T) {
+        for _, v := range slice {
+            fmt.Println(v)
+        }
     }
-}
 
 
 
