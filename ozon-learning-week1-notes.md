@@ -1,3 +1,41 @@
+# interace
+Есть функция (все функции) у объекта, описанная в интерфейсе - он реализует интерфейс. Описание не требуется.
+
+var x interface{} = "hello"
+но лучше
+var x any = 42
+
+Интерфейс можно передать в фаункцию и вызывать внутри функции функцию-метод интерфейса. 
+
+Можно проверить тип:
+var x interface{} = "hello"
+
+// Приведение типа
+str, ok := x.(string)
+if ok {
+    fmt.Println("String:", str)
+}
+
+# interface & generics
+
+func PrintSlice(slice []interface{}) {
+    for _, v := range slice {
+        fmt.Println(v)
+    }
+}
+
+func PrintSlice[T any](slice []T) {
+    for _, v := range slice {
+        fmt.Println(v)
+    }
+}
+
+
+
+
+
+
+
 # map
 
 ## База
