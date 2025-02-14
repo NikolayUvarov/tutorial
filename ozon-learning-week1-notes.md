@@ -1,3 +1,18 @@
+#map
+from go 1.24 используются swissmaps
+map[int64]struct{} requires 16 bytes per slot #71368
+
+[int64 -> bool] = 16 байт 
+[int64 -> struct{}] = 16 байт (из-за выравнивания и метаданных)
+
+
+go 1.23 было 8 байт
+[int64 -> struct{}] = 8 байт (только ключ)
+[int64 -> bool] = 9 байт (8 + 1)
+
+
+
+
 # Слайсы и сабслайсы в Go
 
 При создании саб-слайса новый получчет новый capacity  от исходного cap(src) - start, len(src) - start, то есть и длина
