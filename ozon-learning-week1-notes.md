@@ -84,6 +84,141 @@
     }
 
 
+# net/http - параметрезированный запрос
+
+Пример ниже. На лекции предложен вызов вида http.HandleFunc("Get /post/{id}", hanlerFuncName), но он скорее всего
+подойдет для гориллы-мух или для chi.
+
+    package main
+    
+    import (
+    	"encoding/json"
+    	"fmt"
+    	"log"
+    	"net/http"
+    
+    	"github.com/gorilla/mux"
+    )
+    
+    // Структура для данных запроса
+    type User struct {
+    	ID   string `json:"id"`
+    	Name string `json:"name"`
+    	Age  int    `json:"age"`
+    }
+    
+    // Фейковая база данных
+    var users = map[string]User{
+    	"1": {ID: "1", Name: "Alice", Age: 25},
+    	"2": {ID: "2", Name: "Bob", Age: 30},
+    }
+    
+    // Обработчик GET-запроса с параметром в пути (/user/{id})
+    func GetUserHandler(w http.ResponseWriter, r *http.Request) {
+    	params := mux.Vars(r) // Получаем параметры пути
+    	id := params["id"]
+    
+    	user, exists := users[id]
+    	if !exists {
+    		http.Error(w, "User not found", http.StatusNotFound)
+    		return
+    	}
+    
+    	w.Header().Set("Content-Type", "application/json")
+    	json.NewEncoder(w).Encode(user)
+    }
+    
+    // Обработчик POST-запроса (/user)
+    func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
+    	var user User
+    	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+    		http.Error(w, "Invalid request body", http.StatusBadRequest)
+    		return
+    	}
+    
+    	// Сохраняем нового пользователя
+    	users[user.ID] = user
+    
+    	w.Header().Set("Content-Type", "application/json")
+    	w.WriteHeader(http.StatusCreated)
+    	json.NewEncoder(w).Encode(user)
+    }
+    
+    func main() {
+    	// Создаём роутер
+    	router := mux.NewRouter()
+    
+    	// Роуты с параметрами пути
+    	router.HandleFunc("/user/{id}", GetUserHandler).Methods("GET")   // Получение пользователя по ID
+    	router.HandleFunc("/user", CreateUserHandler).Methods("POST")    // Создание нового пользователя
+    
+    	// Запускаем сервер
+    	fmt.Println("Server is running on :8080")
+    	log.Fatal(http.ListenAndServe(":8080", router))
+    }
+
+# net/http сервер с логгированием запроса
+
+
+    package main
+    
+    import (
+    	"fmt"
+    	"log"
+    	"net/http"
+    	"strings"
+    	"time"
+    )
+    
+    // Middleware для логирования времени выполнения запроса
+    func LoggingMiddleware(next http.Handler) http.Handler {
+    	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    		start := time.Now() // Засекаем время начала запроса
+    
+    		next.ServeHTTP(w, r) // Вызываем следующий обработчик
+    
+    		duration := time.Since(start) // Считаем время выполнения
+    		log.Printf("Request: %s %s | Duration: %v\n", r.Method, r.URL.Path, duration)
+    	})
+    }
+    
+    // Обработчик GET /post/{id}
+    func GetPostHandler(w http.ResponseWriter, r *http.Request) {
+    	// Разбираем URL вручную
+    	parts := strings.Split(r.URL.Path, "/")
+    	if len(parts) < 3 || parts[1] != "post" {
+    		http.Error(w, "Invalid URL", http.StatusNotFound)
+    		return
+    	}
+    	id := parts[2] // Извлекаем {id}
+    
+    	time.Sleep(100 * time.Millisecond) // Симулируем задержку обработки запроса
+    	fmt.Fprintf(w, "Post ID: %s", id)
+    }
+    
+    // Обработчик GET /
+    func HomeHandler(w http.ResponseWriter, r *http.Request) {
+    	fmt.Fprintln(w, "Welcome to the API!")
+    }
+    
+    func main() {
+    	// Создаём базовый маршрутизатор
+    	mux := http.NewServeMux()
+    
+    	// Регистрируем обработчики
+    	mux.HandleFunc("/", HomeHandler)
+    	mux.HandleFunc("/post/", GetPostHandler)
+    
+    	// Добавляем middleware
+    	handlerWithMiddleware := LoggingMiddleware(mux)
+    
+    	// Запускаем сервер
+    	fmt.Println("Server running on :8080")
+    	log.Fatal(http.ListenAndServe(":8080", handlerWithMiddleware))
+    }
+
+
+
 # errors
 
 errors.Is – проверяет, является ли ошибка целевой
