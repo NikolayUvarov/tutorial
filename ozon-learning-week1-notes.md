@@ -1,6 +1,7 @@
 # net/http в разрезе RoundTripper
 
-На примерах.
+На примерах
+
     package main
     
     import (
